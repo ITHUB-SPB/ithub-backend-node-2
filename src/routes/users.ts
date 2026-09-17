@@ -1,36 +1,15 @@
-import { Router, type Response } from "express"
+import { Router } from "express"
 import { users } from "../data.js"
+import auth from "../middleware/auth.js"
 
-// TODO: быть построже с типами formatSuccess
-function formatSuccess(
-    response: Response,
-    data: { [k: string]: object },
-    code: number
-) {
-    response.status(code).json({
-        success: true,
-        data
-    })
-}
+// TODO добавить возможность задать конкретную роль
+import roles from "../middleware/roles.js"
 
-// типизировать code либо через енам всех доступных кодов, 
-// либо через суживание типа number до 4xx и 5xx
-function formatError(
-    response: Response,
-    message: string,
-    code: number = 400,
-    details: object = {}
-) {
-    response.status(code).json({
-        success: false,
-        error: message,
-        details
-    })
-}
+import { formatSuccess, formatError } from "../lib/format-result.js"
 
 export const usersRouter = Router()
 
-usersRouter.get('/users', (request, response) => {
+usersRouter.get('/users', auth, roles, (request, response) => {
     const limit = Number(request.query['limit'] || 20)
     const offset = Number(request.query['offset'] || 0)
 
@@ -38,9 +17,17 @@ usersRouter.get('/users', (request, response) => {
         users: users.slice(offset, offset + limit)
     }
 
+    // limit = 5 offset 0 total 11
+    // pages = 3
+    // page = 1
+
+    // limit = 5 offset 5 total 11
+    // pages = 3
+    // page = 2
+
     const meta = {
         total: users.length,
-        page: Math.ceil(users.length / (limit + offset)), // TODO
+        page: Math.ceil(users.length / (offset)), // TODO найти закономерность
         limit,
         pages: Math.ceil(users.length / limit)
     }
@@ -56,9 +43,9 @@ usersRouter.post('/users', (request, response) => {
     formatSuccess(response, data, 201)
 })
 
-usersRouter.get('/users/:username', (request, response) => {
+usersRouter.get('/users/:username', auth, (request, response) => {
     const user = users.find(
-        u => u.username === request.params.username
+        u => u.username === request.params['username']
     )
 
     if (!user) {

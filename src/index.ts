@@ -1,21 +1,14 @@
-import express, { type Request, type Response, type NextFunction } from 'express'
+import express, { type Request, type Response } from 'express'
+
+import logger from './middleware/logging.js'
+import errorHandler from './middleware/error-handling.js'
 import { usersRouter } from './routes/users.js'
 
 const app = express()
 
-const loggerFn = (request: Request, response: Response, next: NextFunction) => {
-    console.log(
-        new Date().toLocaleDateString('ru'),
-        request.url,
-        request.params,
-        request.body
-    )
-    next()
-}
-
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-app.use(loggerFn)
+app.use(logger)
 
 app.use(usersRouter)
 
@@ -29,18 +22,6 @@ app.use((_: Request, response: Response) => {
     })
 })
 
-app.use((
-    error: Error,
-    _: Request,
-    response: Response,
-    next: NextFunction
-) => {
-    console.error(error.stack)
-    response.status(400).json({
-        success: false,
-        error: error.message
-    })
-    next()
-})
+app.use(errorHandler)
 
 app.listen(3000)
