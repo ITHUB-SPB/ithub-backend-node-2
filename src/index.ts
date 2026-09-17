@@ -1,33 +1,46 @@
 import express, { type Request, type Response, type NextFunction } from 'express'
+import { usersRouter } from './routes/users.js'
 
 const app = express()
 
-const users = ['maria', 'alexander', 'ivan']
-
 const loggerFn = (request: Request, response: Response, next: NextFunction) => {
-    console.log(new Date().toLocaleDateString('ru'), request.url, request.params)
+    console.log(
+        new Date().toLocaleDateString('ru'),
+        request.url,
+        request.params,
+        request.body
+    )
     next()
 }
+
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+app.use(loggerFn)
+
+app.use(usersRouter)
 
 app.get('/', (_, response) => {
     response.end('ok')
 })
 
-app.get('/users', loggerFn, (request, response) => {
-    const limit = request.query['limit'] || 20
-    const offset = request.query['offset'] || 0
-
-    response.json({
-        users: users.slice(Number(offset), Number(offset) + Number(limit))
+app.use((_: Request, response: Response) => {
+    response.status(404).json({
+        message: "Ресурс не найден"
     })
 })
 
-
-app.get('/users/:userId', (request, response) => {
-    response.json({
-        id: request.params.userId,
-        user: 'alexander'
+app.use((
+    error: Error,
+    _: Request,
+    response: Response,
+    next: NextFunction
+) => {
+    console.error(error.stack)
+    response.status(400).json({
+        success: false,
+        error: error.message
     })
+    next()
 })
 
 app.listen(3000)
