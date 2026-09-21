@@ -1,4 +1,7 @@
 import { Router } from "express"
+import * as z from "zod"
+import { ru } from "zod/locales"
+
 import { users } from "../data.js"
 import auth from "../middleware/auth.js"
 
@@ -6,6 +9,8 @@ import auth from "../middleware/auth.js"
 import roles from "../middleware/roles.js"
 
 import { formatSuccess, formatError } from "../lib/format-result.js"
+
+z.config(ru())
 
 export const usersRouter = Router()
 
@@ -35,8 +40,27 @@ usersRouter.get('/users', auth, roles, (request, response) => {
     formatSuccess(response, { ...data, meta }, 200)
 })
 
+const createUserSchema = z.strictObject({
+    username: z.string("Обязательное поле").min(3),
+    password: z.string().min(6).regex(/[^\w\s]+/, "Нужен хотя бы один спецсимвол"),
+    age: z.coerce.number().positive().min(1),
+    role: z.optional(z.union([
+        z.literal("admin"),
+        z.literal("moderator"),
+        z.literal("user")
+    ])).default("user")
+})
+
 usersRouter.post('/users', (request, response) => {
-    users.push(request.body)
+    const newUser = z.safeParse(createUserSchema, request.body)
+
+    if (newUser.error) {
+        throw new Error(
+            JSON.stringify(z.flattenError(newUser.error))
+        )
+    }
+
+    users.push(newUser.data)
 
     const data = { user: users.at(-1)! }
 
