@@ -1,4 +1,4 @@
-import {  type Request, type Response, type NextFunction } from "express";
+import { type Request, type Response, type NextFunction } from "express";
 
 // TODO написать собственный класс для ошибок
 // на основе Error, кода ошибки, сообщения и опционального пояснения
@@ -34,8 +34,8 @@ export default function auth(request: RequestWithAuth, _: Response, next: NextFu
     // TODO брать реальных пользователей
     const user = {
         username: 'maria',
-        role: 'user'
-    } as User;  
+        role: 'moderator'
+    } as User;
 
     request.user = user
 

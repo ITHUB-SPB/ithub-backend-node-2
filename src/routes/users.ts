@@ -3,10 +3,12 @@ import * as z from "zod"
 import { ru } from "zod/locales"
 
 import { users } from "../data.js"
-import auth from "../middleware/auth.js"
+import { createUserSchema, getUsersSchema } from '../schema.js'
 
+import auth from "../middleware/auth.js"
 // TODO добавить возможность задать конкретную роль
 import roles from "../middleware/roles.js"
+import validate from "../middleware/validate.js"
 
 import { formatSuccess, formatError } from "../lib/format-result.js"
 
@@ -14,54 +16,28 @@ z.config(ru())
 
 export const usersRouter = Router()
 
-usersRouter.get('/users', auth, roles, (request, response) => {
-    const limit = Number(request.query['limit'] || 20)
-    const offset = Number(request.query['offset'] || 0)
-
+usersRouter.get('/users', auth, roles, validate(getUsersSchema, 'query'), (request, response) => {
     const data = {
-        users: users.slice(offset, offset + limit)
+        users: users.slice(
+            request.queryParsed.offset, 
+            request.queryParsed.offset + request.queryParsed.limit
+        )
     }
-
-    // limit = 5 offset 0 total 11
-    // pages = 3
-    // page = 1
-
-    // limit = 5 offset 5 total 11
-    // pages = 3
-    // page = 2
 
     const meta = {
         total: users.length,
-        page: Math.ceil(users.length / (offset)), // TODO найти закономерность
-        limit,
-        pages: Math.ceil(users.length / limit)
+        // page: TODO найти закономерность
+        limit: request.queryParsed.limit,
+        pages: Math.ceil(users.length / request.queryParsed.limit)
     }
 
     formatSuccess(response, { ...data, meta }, 200)
 })
 
-const createUserSchema = z.strictObject({
-    username: z.string("Обязательное поле").min(3),
-    password: z.string().min(6).regex(/[^\w\s]+/, "Нужен хотя бы один спецсимвол"),
-    age: z.coerce.number().positive().min(1),
-    role: z.optional(z.union([
-        z.literal("admin"),
-        z.literal("moderator"),
-        z.literal("user")
-    ])).default("user")
-})
-
 usersRouter.post('/users', (request, response) => {
-    const newUser = z.safeParse(createUserSchema, request.body)
+    const newUser = z.parse(createUserSchema, request.body)
 
-    if (newUser.error) {
-        throw new Error(
-            JSON.stringify(z.flattenError(newUser.error))
-        )
-    }
-
-    users.push(newUser.data)
-
+    users.push(newUser)
     const data = { user: users.at(-1)! }
 
     formatSuccess(response, data, 201)
