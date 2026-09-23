@@ -1,4 +1,4 @@
-import { Router } from "express"
+import { Router, type Request } from "express"
 import * as z from "zod"
 import { ru } from "zod/locales"
 
@@ -16,10 +16,15 @@ z.config(ru())
 
 export const usersRouter = Router()
 
-usersRouter.get('/users', auth, roles, validate(getUsersSchema, 'query'), (request, response) => {
+type RequestParsed = Request & {
+    bodyParsed?: object
+    queryParsed?: object
+}
+
+usersRouter.get('/users', auth, roles, validate(getUsersSchema, 'query'), (request: RequestParsed, response) => {
     const data = {
         users: users.slice(
-            request.queryParsed.offset, 
+            request.queryParsed.offset,
             request.queryParsed.offset + request.queryParsed.limit
         )
     }
