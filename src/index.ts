@@ -1,10 +1,15 @@
-import express from 'express'
+import express, { response } from 'express'
+import { resolve } from 'path'
 import * as z from "zod"
 import { ru } from "zod/locales"
+import { products } from "./data.js"
 
 z.config(ru())
 
 const app = express()
+app.get('/api/products', (_, response) => {
+    response.json(products)
+})
 
 // подключение раздачи статики по виртуальному пути /static из директории /assets
 
