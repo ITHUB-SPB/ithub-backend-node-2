@@ -1,33 +1,27 @@
-import express, { type Request, type Response } from 'express'
-import path from 'node:path'
+import express from 'express'
+import * as z from "zod"
+import { ru } from "zod/locales"
 
-import logger from './middleware/logging.js'
-import errorHandler from './middleware/error-handling.js'
-import { usersRouter } from './routes/users.js'
-import { mediaRouter } from './routes/media.js'
+z.config(ru())
 
 const app = express()
 
-const staticPath = path.join(import.meta.dirname, '..', 'assets')
-app.use('/media', express.static(staticPath))
+// подключение раздачи статики по виртуальному пути /static из директории /assets
 
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
-app.use(logger)
+// встроенные глобальные миддлвэа на парсинг тел в json и x-www-form-urlencoded
+// TODO
+// TODO
 
-app.use(usersRouter)
-app.use(mediaRouter)
+// самописный миддлвэа на логгирование
+// TODO
 
-app.get('/', (_, response) => {
-    response.end('ok')
-})
+// подключение роутера продуктов
+// TODO
 
-app.use((_: Request, response: Response) => {
-    response.status(404).json({
-        message: "Ресурс не найден"
-    })
-})
+// подключение обработчика not-found запросов
+// TODO
 
-app.use(errorHandler)
+// подключение глобального error-миддлвэа
+// TODO
 
 app.listen(3000)
