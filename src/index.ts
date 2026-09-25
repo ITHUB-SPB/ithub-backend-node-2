@@ -2,6 +2,7 @@ import express from 'express'
 import * as z from "zod"
 import { ru } from "zod/locales"
 import { products } from './data.js'
+import { error } from 'console'
 
 z.config(ru())
 
@@ -52,23 +53,59 @@ app.post('/api/products', (request, response) => {
 app.put('/api/products/:id', (request, response) => {
     const pr_id = parseInt(request.params.id, 10)
 
-    const { id, name, price, category, stock, description, imageUrl, createdAt } = request.body
+    const { id, name, price, category, stock, description, imageUrl} = request.body
 
-    if (!id || !name || !price || !category || !stock || !description || !imageUrl || !createdAt === undefined) {
-    return errorResponse(res, 'PUT требует все поля: name, email, age', 400)
+    if (!id || !name || price === undefined || !category || !stock || !description || !imageUrl) {
+    return response.status(400).json({error: "PUT требует все поля: id, name, price, category, stock, description, imageUrl, createdAt"})
     }
-    const index = products.findIndex(u => u.id === id)
+    const index = products.findIndex(u => u.id === pr_id)
 
-    response.end('ok')
+   if (index === -1) {
+    return response.status(404).json({error: `Пользователь с ID ${pr_id} не найден`})
+  }
+
+  products[index] = { id: pr_id, name, price, category, stock, description, imageUrl, createdAt: products[index].createdAt }
+  response.json( products[index])
+
 })
 
-// app.patch('/api/products', (request, response) => {
-//     response.end('ok')
-// })
+app.patch('/api/products/:id', (request, response) => {
+    const id = parseInt(request.params.id, 10)
+    const index = products.findIndex(u => u.id === id)
 
-// app.delete('/api/products', (request, response) => {
-//     response.end('ok')
-// })
+    if (index === -1) {
+        return response.status(404).json({error: `Пользователь с ID ${id} не найден`})
+    }
+
+    const allowedFields = ['price', 'stock', 'imageUrl']
+    const updates = {}
+
+    allowedFields.forEach(field => {
+        if (request.body[field] !== undefined) {
+            updates[field] = request.body[field]
+        }
+    })
+
+    if (Object.keys(updates).length === 0) {
+        return response.status(404).json({error: 'Нет допустимых полей для обновления'})
+    }
+
+    products[index] = { ...products[index], ...updates }
+    response.json(products[index])
+})
+
+app.delete('/api/products/:id', (request, response) => {
+    const id = parseInt(request.params.id, 10)
+    const index = products.findIndex(u => u.id === id)
+
+    if (index === -1) {
+        return response.status(404).json({error: `Пользователь с ID ${id} не найден`})
+    }
+
+    products.splice(index, 1)
+
+    response.status(204).send()
+})
 
 // app.post('/api/products', (request, response) => {
 //     response.end('ok')
