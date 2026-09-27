@@ -1,3 +1,25 @@
-const errorHandler = () => { }
+import * as z from "zod";
+import type { Request, Response, NextFunction } from "express";
 
-export default errorHandler
+const errorHandler = (
+  error: Error,
+  _: Request,
+  response: Response,
+  next: NextFunction,
+) => {
+  if (error instanceof z.ZodError) {
+    response.status(422).json({
+      success: false,
+      error: z.flattenError(error)
+    });
+  } else {
+    console.error(error.stack);
+    response.status(500).json({
+      success: false,
+      error: error.message
+    });
+
+  }
+};
+
+export default errorHandler;
