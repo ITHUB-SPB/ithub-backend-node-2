@@ -2,13 +2,50 @@ import express from 'express'
 import * as z from "zod"
 import { ru } from "zod/locales"
 import { products } from './data.js'
-import { error } from 'console'
+import multer from 'multer'
+import path from 'path'
+import logger from './middleware/logging.js'
+import { fail } from 'assert'
+import { request } from 'http'
 
 z.config(ru())
 
 const app = express()
 
+app.use(logger)
 app.use(express.json())
+
+const storage = multer.diskStorage({
+    destination: (request: Request, file: Express.Multer.File, cb) =>{
+    const uploadPath = path.join(__dirname, '..', 'assets')
+    cb(null, uploadPath)},
+    filename: (request: Request, file: Express.Multer.File, cb) => {
+        const Date_time = Date.now();
+        cb(null, file.fieldname + Date_time + path.extname(file.originalname));
+    }
+})
+
+const imageFilter = (
+  req: Request,
+  file: Express.Multer.File,
+  cb: FileFilterCallback
+) => {
+const allowedMimeTypes = ['image/jpeg', 'image/png'];
+
+    if (allowedMimeTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Недопустимый формат файла. Разрешены только JPEG и PNG!'));
+        }
+};
+
+
+const assets = multer({ 
+    storage: storage,
+    fileFilter: imageFilter,
+    limits: {
+        fileSize: 1024 * 1024 * 2
+    }});
 
 app.get('/api/products', (request, response) => {
     const limit = Number(request.query['limit'] || 20)
@@ -107,6 +144,17 @@ app.delete('/api/products/:id', (request, response) => {
     response.status(204).send()
 })
 
+app.post('/api/assets', assets.single('file'), (request, response) => {
+    if (!request.file) {
+        return response.status(400).json({ error: 'Файл не передан' });
+    }
+    return response.json({
+        message: 'Файл успешно загружен!',
+        fileInfo: request.file
+    });
+});
+
+app.use('/static', express.static(path.join(__dirname, '..', 'assets')));
 // app.post('/api/products', (request, response) => {
 //     response.end('ok')
 // })
