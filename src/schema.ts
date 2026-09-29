@@ -8,6 +8,8 @@ export const createProductSchema = z.strictObject({
 
 });
 
+export const updateProductSchema = createProductSchema.partial();
+
 export const getProductSchema = z.strictObject({
   limit: z.optional(z.literal(["10", "25"]).transform(Number)).default(10),
   offset: z.optional(z.coerce.number().min(0).int()).default(0),
