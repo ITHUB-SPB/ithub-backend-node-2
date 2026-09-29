@@ -5,8 +5,10 @@ import { products } from './data.js'
 import multer from 'multer'
 import path from 'path'
 import logger from './middleware/logging.js'
+import errorHandler from './middleware/error-handling.js'
 import { fail } from 'assert'
 import { request } from 'http'
+import { fileURLToPath } from 'url'
 
 z.config(ru())
 
@@ -46,6 +48,9 @@ const assets = multer({
     limits: {
         fileSize: 1024 * 1024 * 2
     }});
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 app.get('/api/products', (request, response) => {
     const limit = Number(request.query['limit'] || 20)
@@ -155,5 +160,5 @@ app.post('/api/assets', assets.single('file'), (request, response) => {
 });
 
 app.use('/static', express.static(path.join(__dirname, '..', 'assets')));
-
+app.use(errorHandler)
 app.listen(3000)
