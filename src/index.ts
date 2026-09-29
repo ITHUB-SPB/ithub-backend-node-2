@@ -155,25 +155,5 @@ app.post('/api/assets', assets.single('file'), (request, response) => {
 });
 
 app.use('/static', express.static(path.join(__dirname, '..', 'assets')));
-// app.post('/api/products', (request, response) => {
-//     response.end('ok')
-// })
-// подключение раздачи статики по виртуальному пути /static из директории /assets
-
-// встроенные глобальные миддлвэа на парсинг тел в json и x-www-form-urlencoded
-// TODO
-// TODO
-
-// самописный миддлвэа на логгирование
-// TODO
-
-// подключение роутера продуктов
-// TODO
-
-// подключение обработчика not-found запросов
-// TODO
-
-// подключение глобального error-миддлвэа
-// TODO
 
 app.listen(3000)
