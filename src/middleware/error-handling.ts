@@ -14,7 +14,7 @@ const errorHandler = (
     });
   } else {
     console.error(error.stack);
-    response.status(500).json({
+    response.status(400).json({
       success: false,
       error: error.message
     });
