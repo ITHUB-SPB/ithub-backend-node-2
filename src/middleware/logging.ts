@@ -10,7 +10,7 @@ const logger = (request: Request, response: Response, next: NextFunction) => {
             `[${request.method}]`,
             request.url,
             `Status: ${response.statusCode}`,
-            `-${duration} ms`   
+            `:${duration} ms`   
         )
     })
 

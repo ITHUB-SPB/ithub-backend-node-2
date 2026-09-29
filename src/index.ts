@@ -9,6 +9,7 @@ import errorHandler from './middleware/error-handling.js'
 import { fail } from 'assert'
 import { request } from 'http'
 import { fileURLToPath } from 'url'
+import { ProductSchema } from './schema.js'
 
 z.config(ru())
 
@@ -84,57 +85,77 @@ app.get('/api/products', (request, response) => {
     response.json({data: filteredProducts.slice(offset, offset + limit), meta: meta})
 })
 
-app.post('/api/products', (request, response) => {
-    products.push(request.body)
+app.post('/api/products', (request, response, next) => {
+    try {
+        const nextId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+        
+        const incomingData = {
+            ...request.body,
+            id: nextId,
+            createdAt: new Date().toISOString()
+        };
 
-    const data = { products: products.at(-1)! }
+        const validatedProduct = ProductSchema.parse(incomingData);
+        
+        products.push(validatedProduct);
 
-    response.json(data)
-})
-
-app.put('/api/products/:id', (request, response) => {
-    const pr_id = parseInt(request.params.id, 10)
-
-    const { id, name, price, category, stock, description, imageUrl} = request.body
-
-    if (!id || !name || price === undefined || !category || !stock || !description || !imageUrl) {
-    return response.status(400).json({error: "PUT требует все поля: id, name, price, category, stock, description, imageUrl, createdAt"})
+        response.status(201).json({ products: validatedProduct });
+    } catch (error) {
+        next(error);
     }
-    const index = products.findIndex(u => u.id === pr_id)
+});
 
-   if (index === -1) {
-    return response.status(404).json({error: `Пользователь с ID ${pr_id} не найден`})
-  }
+app.put('/api/products/:id', (request, response, next) => {
+    try {
+        const pr_id = parseInt(request.params.id, 10);
 
-  products[index] = { id: pr_id, name, price, category, stock, description, imageUrl, createdAt: products[index].createdAt }
-  response.json( products[index])
+        const incomingData = {
+            ...request.body,
+            id: pr_id 
+        };
 
-})
+        const validatedProduct = ProductSchema.parse(incomingData);
 
-app.patch('/api/products/:id', (request, response) => {
-    const id = parseInt(request.params.id, 10)
-    const index = products.findIndex(u => u.id === id)
-
-    if (index === -1) {
-        return response.status(404).json({error: `Пользователь с ID ${id} не найден`})
-    }
-
-    const allowedFields = ['price', 'stock', 'imageUrl']
-    const updates = {}
-
-    allowedFields.forEach(field => {
-        if (request.body[field] !== undefined) {
-            updates[field] = request.body[field]
+        const index = products.findIndex(u => u.id === pr_id);
+        if (index === -1) {
+            return response.status(404).json({ error: `Продукт с ID ${pr_id} не найден` });
         }
-    })
-
-    if (Object.keys(updates).length === 0) {
-        return response.status(404).json({error: 'Нет допустимых полей для обновления'})
+        products[index] = { 
+            ...validatedProduct, 
+            id: pr_id, 
+            createdAt: products[index].createdAt 
+        };
+        
+        response.json(products[index]);
+    } catch (error) {
+        next(error);
     }
+});
 
-    products[index] = { ...products[index], ...updates }
-    response.json(products[index])
-})
+app.patch('/api/products/:id', (request, response, next) => {
+    try {
+        const id = parseInt(request.params.id, 10);
+        const index = products.findIndex(u => u.id === id);
+
+        if (index === -1) {
+            return response.status(404).json({ error: `Продукт с ID ${id} не найден` });
+        }
+
+        const PartialProductSchema = ProductSchema.partial();
+
+        const validatedUpdates = PartialProductSchema.parse(request.body);
+
+        if (Object.keys(validatedUpdates).length === 0) {
+            return response.status(400).json({ error: 'Нет допустимых полей для обновления' });
+        }
+
+        products[index] = { ...products[index], ...validatedUpdates };
+        response.json(products[index]);
+    } catch (error) {
+        next(error); 
+    }
+});
+
 
 app.delete('/api/products/:id', (request, response) => {
     const id = parseInt(request.params.id, 10)
