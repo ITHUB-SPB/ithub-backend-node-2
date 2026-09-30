@@ -5,7 +5,7 @@ export const createProductSchema = z.strictObject({
   price: z.number().positive().min(1),
   stock: z.number().int().min(0).default(0).optional(),
   desc: z.string().max(500).optional(),
-
+  category: z.enum(["electronics", "clothing", "food", "other"]),
 });
 
 export const updateProductSchema = createProductSchema.partial();

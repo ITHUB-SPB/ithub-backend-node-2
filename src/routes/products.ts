@@ -3,12 +3,10 @@ import { products } from "../data.js";
 import { createProductSchema, updateProductSchema } from "../schema.js";
 export const productsRouter = Router();
 import validate from "../middleware/validate.js";
-import { formatSuccess,formatError } from "../middleware/format-result.js";
+import { formatSuccess, formatError } from "../middleware/format-result.js";
+import multer from "multer";
 
-type RequestParsed = Request & {
-  bodyParsed?: object;
-  queryParsed?: object;
-};
+const upload = multer({ dest: "assets/" });
 
 productsRouter.get("/", (req, res) => {
   const { min_price, max_price, page, limit } = req.query;
@@ -44,8 +42,8 @@ productsRouter.get("/", (req, res) => {
   });
 });
 
-productsRouter.post("/", (req, res) => {
-  const { name, price, stock, desc } = (req as any).bodyParsed;
+productsRouter.post("/", validate(createProductSchema, "body"), (req, res) => {
+  const { name, price, stock, desc, category } = req.body;
 
   const newProduct = {
     id: products.length + 1,
@@ -53,11 +51,31 @@ productsRouter.post("/", (req, res) => {
     price,
     stock: stock ?? 0,
     desc: desc,
+    category: category || "other",
+    createdAt: new Date().toISOString(),
   };
 
   products.push(newProduct);
 
-  res.status(201).json({ data: newProduct });
+  res.status(201).json(formatSuccess(newProduct));
+});
+
+productsRouter.post("/:id/image", upload.single("image"), (req, res) => {
+  const productId = parseInt(req.params["id"] as string, 10);
+
+  const product = products.find((p) => p.id === productId);
+  if (!product) {
+    return res.status(404).json(formatError("не нашел товар"));
+  }
+
+  const file = req.file;
+  if (!file) {
+    return res.status(400).json(formatError("нет картинки"));
+  }
+
+  product.imageUrl = `/assets/${file.filename}`;
+
+  return res.json(formatSuccess(product));
 });
 
 productsRouter.get("/:id", (req, res) => {
@@ -69,37 +87,52 @@ productsRouter.get("/:id", (req, res) => {
   return res.json({ data: product });
 });
 
-productsRouter.put("/:id", (req, res) => {
-  const productId = parseInt(req.params["id"] as string, 10);
-  const productIx = products.findIndex((p) => p.id === productId);
-  if (productIx === -1) {
-    return res.status(404).json({ error: "нету" });
-  }
+productsRouter.put(
+  "/:id",
+  validate(createProductSchema, "body"),
+  (req, res) => {
+    const productId = parseInt(req.params["id"] as string, 10);
+    const productIx = products.findIndex((p) => p.id === productId);
+    if (productIx === -1) {
+      return res.status(404).json({ error: "нету" });
+    }
 
-  products[productIx] = {
-    id: productId,
-    name: req.body.name,
-    price: req.body.price,
-    stock: req.body.stock,
-    desc: req.body.desc,
-  };
+    const oldProduct = products[productIx]!;
 
-  return res.json({ data: products[productIx] });
-});
+    const { name, price, stock, desc, category } =
+      (req as any).bodyParsed || {};
 
-productsRouter.patch("/:id", validate(updateProductSchema, "body"), (req, res) => {
-  const productId = parseInt(req.params["id"] as string, 10);
-  const product = products.find((p) => p.id === productId);
-  
-  if (!product) {
-    return res.status(404).json({ error: "нету" });
-  }
-  const dataToUpdate = (req as any).bodyParsed;
-Object.assign(product, dataToUpdate);
+    products[productIx] = {
+      id: productId,
+      name,
+      price,
+      stock: stock ?? 0,
+      desc,
+      category,
+      createdAt: oldProduct.createdAt,
+      imageUrl: oldProduct.imageUrl ?? "",
+    };
 
-  return res.json(formatSuccess(product));
+    return res.json(formatSuccess(products[productIx]));
+  },
+);
 
-});
+productsRouter.patch(
+  "/:id",
+  validate(updateProductSchema, "body"),
+  (req, res) => {
+    const productId = parseInt(req.params["id"] as string, 10);
+    const product = products.find((p) => p.id === productId);
+
+    if (!product) {
+      return res.status(404).json({ error: "нету" });
+    }
+    const dataToUpdate = (req as any).bodyParsed;
+    Object.assign(product, dataToUpdate);
+
+    return res.json(formatSuccess(product));
+  },
+);
 
 productsRouter.delete("/:id", (req, res) => {
   const productId = parseInt(req.params["id"] as string, 10);
@@ -115,6 +148,3 @@ productsRouter.delete("/:id", (req, res) => {
 });
 
 export default productsRouter;
-// 1. используйте данные из src/data
-// 2. используйте миддлвэа на валидацию по схемам
-// 3. используйте форматирование ответов (formatSuccess и formatError из примера)
