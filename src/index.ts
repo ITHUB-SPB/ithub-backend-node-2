@@ -1,27 +1,36 @@
-import express from 'express'
-import * as z from "zod"
-import { ru } from "zod/locales"
+import express from "express";
+import { productsRouter } from "./routes/products.js";
+import logger from "./middleware/logging.js";
+import errorHandler from "./middleware/error-handling.js";
 
-z.config(ru())
+const app = express();
 
-const app = express()
+// JSON
+app.use(express.json());
 
-// подключение раздачи статики по виртуальному пути /static из директории /assets
+// x-www-form-urlencoded
+app.use(express.urlencoded({ extended: true }));
 
-// встроенные глобальные миддлвэа на парсинг тел в json и x-www-form-urlencoded
-// TODO
-// TODO
+// Статика из assets
+app.use("/static", express.static("assets"));
 
-// самописный миддлвэа на логгирование
-// TODO
+// Логирование всех запросов
+app.use(logger);
 
-// подключение роутера продуктов
-// TODO
+// Роутер продуктов
+app.use("/api/products", productsRouter);
 
-// подключение обработчика not-found запросов
-// TODO
+// Если маршрут не найден
+app.use((request, response) => {
+    response.status(404).json({
+        success: false,
+        error: `Маршрут ${request.method} ${request.originalUrl} не найден`,
+    });
+});
 
-// подключение глобального error-миддлвэа
-// TODO
+// Глобальный обработчик ошибок
+app.use(errorHandler);
 
-app.listen(3000)
+app.listen(3000, () => {
+    console.log("Сервер запущен на порту 3000");
+});
