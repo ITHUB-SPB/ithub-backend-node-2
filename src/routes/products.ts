@@ -92,15 +92,13 @@ productsRouter.get("/:id", (req, res) => {
   return res.json(formatSuccess(product));
 });
 
-productsRouter.put(
-  "/:id",
-  validate(createProductSchema, "body"),
-  (req, res) => {
-    const productId = parseInt(req.params["id"] as string, 10);
-    const productIx = products.findIndex((p) => p.id === productId);
-    if (productIx === -1) {
-      return res.status(404).json({ error: "нету" });
-    }
+productsRouter.put("/:id", validate(createProductSchema, "body"), (req, res) => {
+  const productId = parseInt(req.params["id"] as string, 10);
+  const productIx = products.findIndex((p) => p.id === productId);
+
+  if (productIx === -1) {
+    return res.status(404).json(formatError(`Товар с ID ${productId} не найден`));
+  }
 
     const oldProduct = products[productIx]!;
 
