@@ -84,10 +84,12 @@ productsRouter.post("/:id/image", upload.single("image"), (req, res) => {
 productsRouter.get("/:id", (req, res) => {
   const productId = parseInt(req.params["id"] as string, 10);
   const product = products.find((p) => p.id === productId);
+
   if (!product) {
-    return res.status(404).json({ error: "нету" });
+    return res.status(404).json(formatError(`Товар с ID ${productId} не найден`));
   }
-  return res.json({ data: product });
+
+  return res.json(formatSuccess(product));
 });
 
 productsRouter.put(
