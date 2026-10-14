@@ -128,8 +128,9 @@ productsRouter.patch(
     const product = products.find((p) => p.id === productId);
 
     if (!product) {
-      return res.status(404).json({ error: "нету" });
+      return res.status(404).json(formatError(`Товар с ID ${productId} не найден`));
     }
+
     const dataToUpdate = (req as any).bodyParsed;
     Object.assign(product, dataToUpdate);
 
@@ -142,12 +143,12 @@ productsRouter.delete("/:id", (req, res) => {
   const productIndex = products.findIndex((p) => p.id === productId);
 
   if (productIndex === -1) {
-    return res.status(404).json({ error: "нету" });
+    return res.status(404).json(formatError(`Товар с ID ${productId} не найден`));
   }
 
   products.splice(productIndex, 1);
 
-  return res.status(200).json({ message: "удалил" });
+  return res.json(formatSuccess({ message: "Товар удалён" }));
 });
 
 export default productsRouter;
