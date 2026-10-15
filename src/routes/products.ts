@@ -1,10 +1,8 @@
-import { response, Router } from "express"
+import { Router } from "express"
 import { products } from "../data.js"
-import { number, success } from "zod"
-import { start } from "repl"
-import { createProductSchema } from "../schema.js"
+import { createProductSchema, updateProductSchema } from "../schema.js"
 import validate from "../middleware/validate.js"
-import { formatSuccess } from "../middleware/format-result.js"
+import { formatSuccess, formatError } from "../middleware/format-result.js"
 
 export const productsRouter = Router()
 
@@ -54,8 +52,49 @@ productsRouter.post(
 productsRouter.get("/:id", (request, response) => {
     const productId = Number(request.params["id"])
     const product = products.find(({ id }) => { return id === productId })
-    if (!product) return response.status(404).json({ error: "Not found" })
-    return response.json({ data: product })
+    if (!product) return response.status(404).json(formatError("Not found"))
+    return response.json(formatSuccess(product))
+})
+
+productsRouter.put(
+    "/:id",
+    validate(createProductSchema, "body"),
+    (request, response) => {
+        const productId = Number(request.params["id"])
+        const productIndex = products.findIndex(({ id }) => { return id === productId })
+        if (productIndex < 0) return response.status(404).json(formatError("Not found"))
+        const { name, price, stock, description, category } = request.body
+        products[productIndex] = {
+            id: productId,
+            name: name,
+            price: price,
+            stock: stock ?? 0,
+            description: description,
+            category: category,
+            createdAt: new Date().toISOString()
+        }
+        return response.json(formatSuccess(products[productIndex]))
+    }
+)
+
+productsRouter.patch(
+    "/:id",
+    validate(updateProductSchema, "body"),
+    (request, response) => {
+        const productId = Number(request.params["id"])
+        const product = products.find(({ id }) => { return id === productId })
+        if (!product) return response.status(404).json(formatError("Not found"))
+        Object.assign(product, request.body)
+        return response.json(formatSuccess(product))
+    }
+)
+
+productsRouter.delete("/:id", (request, response) => {
+    const productId = Number(request.params["id"])
+    const productIndex = products.findIndex(({ id }) => { return id === productId })
+    if (productIndex < 0) return response.status(404).json({ error: "Not found"})
+    products.splice(productIndex, 1)
+    return response.status(200)
 })
 
 // 1. используйте данные из src/data

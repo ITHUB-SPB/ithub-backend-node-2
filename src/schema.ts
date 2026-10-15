@@ -9,7 +9,3 @@ export const createProductSchema = z.strictObject({
 })
 
 export const updateProductSchema = createProductSchema.partial()
-
-export const getProductSchema = z.strictObject({
-    // TODO
-})
