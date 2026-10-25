@@ -32,14 +32,6 @@ const errorHandler = (
       error: error.message,
     });
   }
-
-  if (error.message === "Можно загружать только JPEG или PNG") {
-    return res.status(400).json({
-      success: false,
-      error: error.message,
-    });
-  }
-
   console.error(error);
 
   return res.status(500).json({
